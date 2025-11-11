@@ -3,7 +3,6 @@ import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import axios from 'axios'
 
-
 const UserProfile = () => {
   const { username } = useParams()
   const [user, setUser] = useState(null)
@@ -16,17 +15,37 @@ const UserProfile = () => {
   // Fetch user profile and posts
   useEffect(() => {
     fetchUserProfile()
-  }, [username])
+  }, [username, currentUser]) // Add currentUser to dependencies
 
   const fetchUserProfile = async () => {
     try {
       setLoading(true)
       setError('')
-      const response = await axios.get(`${HOST}/api/users/${username}`)
+      const token = localStorage.getItem('token')
+      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+      
+      const response = await axios.get(`${HOST}/api/users/${username}`, config)
       
       if (response.data.success) {
-        setUser(response.data.user)
-        setUserPosts(response.data.posts)
+        const userData = response.data.user;
+        
+        // DEBUG: Check what we receive from backend
+        console.log('🔍 Backend Response:', {
+          username: userData.username,
+          isFollowing: userData.isFollowing,
+          followersCount: userData.followersCount,
+          hasIsFollowing: 'isFollowing' in userData
+        });
+        
+        setUser({
+          ...userData,
+          // Trust the backend completely for isFollowing
+          isFollowing: Boolean(userData.isFollowing), // Force boolean
+          followersCount: userData.followersCount || 0,
+          followingCount: userData.followingCount || 0,
+          postsCount: userData.postsCount || 0
+        });
+        setUserPosts(response.data.posts || []);
       }
     } catch (error) {
       console.log('Error fetching user profile:', error)
@@ -38,35 +57,37 @@ const UserProfile = () => {
 
   const handleFollowToggle = async () => {
     if (!isAuthenticated) {
-      alert('Please login to follow users')
-      return
+      alert('Please login to follow users');
+      return;
     }
 
-    setFollowLoading(true)
+    setFollowLoading(true);
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token');
       const response = await axios.post(
         `${HOST}/api/users/${username}/follow`,
         {},
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      )
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // DEBUG: Check follow response
+      console.log('🔄 Follow Response:', response.data);
 
       if (response.data.success) {
+        // Update state immediately with backend response
         setUser(prev => ({
           ...prev,
           isFollowing: response.data.isFollowing,
           followersCount: response.data.followersCount
-        }))
+        }));
       }
     } catch (error) {
-      console.log('Follow error:', error)
-      setError('Failed to process follow action')
+      console.log('Follow error:', error);
+      setError('Failed to process follow action');
     } finally {
-      setFollowLoading(false)
+      setFollowLoading(false);
     }
-  }
+  };
 
   // Loading state
   if (loading) {
@@ -92,7 +113,6 @@ const UserProfile = () => {
         </div>
         <div className="text-center mt-3">
           <Link to="/" className="btn btn-primary">
-            <i className="bi bi-arrow-left me-1"></i>
             Back to Feed
           </Link>
         </div>
@@ -158,7 +178,7 @@ const UserProfile = () => {
                     </div>
                     
                     {/* Follow Button */}
-                    {isAuthenticated && currentUser.username !== username && (
+                    {isAuthenticated && currentUser?.username !== username && (
                       <button
                         className={`btn ${user.isFollowing ? 'btn-outline-danger' : 'btn-primary'}`}
                         onClick={handleFollowToggle}
@@ -181,24 +201,29 @@ const UserProfile = () => {
                     )}
                   </div>
                   
-<div className="row text-center mt-3">
-  <div className="col-4">
-    <div className="fw-bold h5 text-primary">{user.postsCount || 0}</div>
-    <small className="text-muted">Posts</small>
-  </div>
-  <div className="col-4">
-    <Link to={`/user/${username}/followers`} className="text-decoration-none">
-      <div className="fw-bold h5 text-primary cursor-pointer">{user.followersCount || 0}</div>
-      <small className="text-muted">Followers</small>
-    </Link>
-  </div>
-  <div className="col-4">
-    <Link to={`/user/${username}/following`} className="text-decoration-none">
-      <div className="fw-bold h5 text-primary cursor-pointer">{user.followingCount || 0}</div>
-      <small className="text-muted">Following</small>
-    </Link>
-  </div>
-</div>
+                  {/* Stats Row */}
+                  <div className="row text-center mt-3">
+                    <div className="col-4">
+                      <div className="fw-bold h5 text-primary">{user.postsCount || 0}</div>
+                      <small className="text-muted">Posts</small>
+                    </div>
+                    <div className="col-4">
+                      <Link to={`/user/${username}/followers`} className="text-decoration-none">
+                        <div className="fw-bold h5 text-primary cursor-pointer">
+                          {user.followersCount || 0}
+                        </div>
+                        <small className="text-muted">Followers</small>
+                      </Link>
+                    </div>
+                    <div className="col-4">
+                      <Link to={`/user/${username}/following`} className="text-decoration-none">
+                        <div className="fw-bold h5 text-primary cursor-pointer">
+                          {user.followingCount || 0}
+                        </div>
+                        <small className="text-muted">Following</small>
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -244,11 +269,11 @@ const UserProfile = () => {
                       <div className="card-footer bg-transparent">
                         <small className="text-muted">
                           <i className="bi bi-heart-fill text-danger me-1"></i>
-                          {post.likesCount || post.likes.length} likes
+                          {post.likesCount || post.likes?.length || 0} likes
                         </small>
                         <small className="text-muted ms-3">
                           <i className="bi bi-chat me-1"></i>
-                          {post.commentsCount || post.comments.length} comments
+                          {post.commentsCount || post.comments?.length || 0} comments
                         </small>
                       </div>
                     </div>

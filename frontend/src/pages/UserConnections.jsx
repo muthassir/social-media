@@ -3,7 +3,6 @@ import { useParams, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import axios from 'axios'
 
-
 const UserConnections = () => {
   const { username } = useParams()
   const location = useLocation()
@@ -39,17 +38,35 @@ const UserConnections = () => {
         const userDetails = await Promise.all(
           userIds.map(async (userId) => {
             try {
-              const userResponse = await axios.get(`${HOST}/api/users/id/${userId}`)
+              const userResponse = await axios.get(`${HOST}/api/users/${userId}`)
               return userResponse.data.user
             } catch (error) {
               console.log('Error fetching user:', error)
-              return null
+              // Try alternative endpoint if the above fails
+              try {
+                const altResponse = await axios.get(`${HOST}/api/users/id/${userId}`)
+                return altResponse.data.user
+              } catch (altError) {
+                console.log('Alternative endpoint also failed:', altError)
+                return null
+              }
             }
           })
         )
         
-        // Filter out any failed requests
-        const validUsers = userDetails.filter(user => user !== null)
+        // Filter out any failed requests and ensure proper data structure
+        const validUsers = userDetails.filter(user => user !== null).map(user => ({
+          ...user,
+          // Ensure counts are properly set
+          followersCount: user.followersCount || user.followers?.length || 0,
+          followingCount: user.followingCount || user.following?.length || 0,
+          // Check if current user is following this user
+          isFollowing: currentUser ? user.followers?.some(follower => 
+            follower.toString() === currentUser._id?.toString() || 
+            follower._id?.toString() === currentUser._id?.toString()
+          ) : false
+        }))
+        
         setUsers(validUsers)
       }
     } catch (error) {
@@ -84,13 +101,20 @@ const UserConnections = () => {
               ? { 
                   ...user, 
                   isFollowing: response.data.isFollowing,
-                  followersCount: response.data.isFollowing 
-                    ? (user.followersCount || 0) + 1 
-                    : (user.followersCount || 1) - 1
+                  // Use the count from response or calculate based on current state
+                  followersCount: response.data.followersCount !== undefined 
+                    ? response.data.followersCount 
+                    : response.data.isFollowing 
+                      ? (user.followersCount || 0) + 1 
+                      : Math.max((user.followersCount || 1) - 1, 0)
                 }
               : user
           )
         )
+        
+        // Optional: Refresh the data to ensure consistency
+        // Uncomment the line below if counts are still inconsistent
+        // await fetchUsers();
       }
     } catch (error) {
       console.log('Follow error:', error)
@@ -197,7 +221,7 @@ const UserConnections = () => {
                           >
                             View Profile
                           </Link>
-                          {isAuthenticated && currentUser.username !== user.username && (
+                          {isAuthenticated && currentUser && currentUser.username !== user.username && (
                             <button
                               className={`btn btn-sm ${user.isFollowing ? 'btn-outline-danger' : 'btn-primary'}`}
                               onClick={() => handleFollowToggle(user.username, user.isFollowing)}

@@ -5,6 +5,7 @@ import axios from 'axios'
 // Components
 import CreatePost from '../components/CreatePost'
 import Post from '../components/Post'
+import { Link } from 'react-router-dom'
 
 const Feed = () => {
   const [posts, setPosts] = useState([])
@@ -67,7 +68,7 @@ const Feed = () => {
             <h4 className="text-primary">
               {isAuthenticated ? `Welcome, ${user?.username}! 👋` : 'Explore Social Posts 🌟'}
             </h4>
-            <p className="text-muted">
+            <p className="text-info">
               {isAuthenticated 
                 ? "Share what's on your mind with the community" 
                 : "Join the community to share your thoughts and connect with others"
@@ -88,14 +89,16 @@ const Feed = () => {
                   Login to share your thoughts, like posts, and comment
                 </p>
                 <div className="d-flex gap-2 justify-content-center">
-                  <a href="/login" className="btn btn-primary">
-                    <i className="bi bi-box-arrow-in-right me-2"></i>
+                  <Link to="/login">
+                  <button className="btn btn-primary">
                     Login
-                  </a>
-                  <a href="/register" className="btn btn-outline-primary">
-                    <i className="bi bi-person-plus me-2"></i>
+                  </button>
+                  </Link>
+                  <Link to="/register">
+                  <button className="btn btn-outline-primary">
                     Register
-                  </a>
+                  </button>
+                  </Link>
                 </div>
               </div>
             </div>

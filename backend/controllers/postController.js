@@ -7,7 +7,6 @@ const createPost = async (req, res) => {
     const { text, image } = req.body;
     const userId = req.userId;
 
-    // Check if at least one field is provided
     if (!text && !image) {
       return res.status(400).json({
         success: false,
@@ -79,7 +78,6 @@ const likePost = async (req, res) => {
     const postId = req.params.id;
     const userId = req.userId;
 
-    // Find the post
     const post = await Post.findById(postId);
     if (!post) {
       return res.status(404).json({
@@ -88,7 +86,6 @@ const likePost = async (req, res) => {
       });
     }
 
-    // Get user details
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -97,31 +94,33 @@ const likePost = async (req, res) => {
       });
     }
 
-    // Check if user already liked the post
+    // FIX: Consistent ID comparison
     const alreadyLiked = post.likes.some(like => 
-      like.userId.toString() === userId
+      like.userId.toString() === userId.toString()
     );
 
     if (alreadyLiked) {
-      // Remove like (unlike)
+      // Remove like
       post.likes = post.likes.filter(like => 
-        like.userId.toString() !== userId
+        like.userId.toString() !== userId.toString()
       );
     } else {
       // Add like
       post.likes.push({
-        userId,
+        userId: userId,
         username: user.username
       });
     }
 
     await post.save();
 
+    // FIX: Return consistent data
     res.json({
       success: true,
       message: alreadyLiked ? 'Post unliked' : 'Post liked',
-      likesCount: post.likesCount,
-      isLiked: !alreadyLiked
+      isLiked: !alreadyLiked, 
+      likesCount: post.likes.length,
+      post: post
     });
 
   } catch (error) {

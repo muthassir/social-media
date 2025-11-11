@@ -60,8 +60,24 @@ userSchema.virtual('followingCount').get(function() {
   return this.following.length;
 });
 
-// Ensure virtual fields are serialized
-userSchema.set('toJSON', { virtuals: true });
+// FIX: Ensure virtual fields are serialized for both toJSON and toObject
+userSchema.set('toJSON', { 
+  virtuals: true,
+  transform: function(doc, ret) {
+    // Remove password from JSON output
+    delete ret.password;
+    return ret;
+  }
+});
+
+userSchema.set('toObject', { 
+  virtuals: true,
+  transform: function(doc, ret) {
+    // Remove password from object output
+    delete ret.password;
+    return ret;
+  }
+});
 
 // Hash password before saving user
 userSchema.pre('save', async function(next) {

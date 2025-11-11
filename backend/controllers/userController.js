@@ -26,13 +26,16 @@ const getUserProfile = async (req, res) => {
       isFollowing = currentUser.following.includes(user._id);
     }
 
+    // Now toObject() will include the virtual fields automatically
+    const userWithData = {
+      ...user.toObject(),
+      postsCount: userPosts.length,
+      isFollowing
+    };
+
     res.json({
       success: true,
-      user: {
-        ...user.toObject(),
-        postsCount: userPosts.length,
-        isFollowing
-      },
+      user: userWithData,
       posts: userPosts
     });
 
@@ -50,7 +53,6 @@ const toggleFollow = async (req, res) => {
     const { username } = req.params;
     const currentUserId = req.userId;
 
-    // Find target user
     const targetUser = await User.findOne({ username });
     if (!targetUser) {
       return res.status(404).json({
@@ -59,22 +61,17 @@ const toggleFollow = async (req, res) => {
       });
     }
 
-    // Find current user
     const currentUser = await User.findById(currentUserId);
 
     // Check if already following
-    const isFollowing = currentUser.following.includes(targetUser._id);
+    const isCurrentlyFollowing = currentUser.following.includes(targetUser._id);
 
-    if (isFollowing) {
-      // Unfollow: Remove from following and followers
-      currentUser.following = currentUser.following.filter(
-        id => id.toString() !== targetUser._id.toString()
-      );
-      targetUser.followers = targetUser.followers.filter(
-        id => id.toString() !== currentUserId.toString()
-      );
+    if (isCurrentlyFollowing) {
+      // Unfollow
+      currentUser.following.pull(targetUser._id);
+      targetUser.followers.pull(currentUserId);
     } else {
-      // Follow: Add to following and followers
+      // Follow
       currentUser.following.push(targetUser._id);
       targetUser.followers.push(currentUserId);
     }
@@ -82,11 +79,12 @@ const toggleFollow = async (req, res) => {
     await currentUser.save();
     await targetUser.save();
 
+    // FIX: Return consistent data structure
     res.json({
       success: true,
-      message: isFollowing ? 'Unfollowed successfully' : 'Followed successfully',
-      isFollowing: !isFollowing,
-      followersCount: targetUser.followers.length // Use actual array length
+      message: isCurrentlyFollowing ? 'Unfollowed successfully' : 'Followed successfully',
+      isFollowing: !isCurrentlyFollowing, // This is the NEW state
+      followersCount: targetUser.followers.length
     });
 
   } catch (error) {
