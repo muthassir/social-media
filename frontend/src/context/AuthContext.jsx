@@ -5,7 +5,8 @@ import axios from 'axios'
 const AuthContext = createContext()
 
 // Backend host URL
-const HOST = "http://localhost:5000"
+// const HOST = "http://localhost:5000"
+const HOST = "https://social-media-rm1u.onrender.com"
 
 // Custom hook to use auth context
 export const useAuth = () => {

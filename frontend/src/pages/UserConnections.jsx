@@ -3,7 +3,6 @@ import { useParams, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import axios from 'axios'
 
-const HOST = "http://localhost:5000"
 
 const UserConnections = () => {
   const { username } = useParams()
@@ -11,7 +10,7 @@ const UserConnections = () => {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const { user: currentUser, isAuthenticated } = useAuth()
+  const { user: currentUser, isAuthenticated, HOST } = useAuth()
 
   // Determine if we're showing followers or following
   const isFollowersPage = location.pathname.includes('followers')
