@@ -6,7 +6,7 @@ require('dotenv').config();
 const app = express();
 
 // Middleware 
-app.use(cors({origin: ['http://localhost:5173', 'https://socialmedia-ap.netlify.app/', 'https://social-media-rm1u.onrender.com' ]}));
+app.use(cors({origin: ['http://localhost:5173', 'https://socialmedia-ap.netlify.app', 'https://social-media-rm1u.onrender.com' ]}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
